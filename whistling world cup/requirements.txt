@@ -1,0 +1,6 @@
+# note_goal.py: records audio via pyaudio, bandpass-filters and measures pitch with
+# scipy/numpy, then publishes the result over MQTT (paho-mqtt, via the vendored mqttlib.py).
+paho-mqtt
+numpy
+scipy
+pyaudio
