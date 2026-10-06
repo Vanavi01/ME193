@@ -1,0 +1,9 @@
+# Training data, outputs, and weights (kept local)
+dataset/
+dataset_raw/
+dataset_raw_labels/
+runs/
+*.pt
+
+__pycache__/
+*.pyc
