@@ -1,0 +1,8 @@
+legoeducation   # Double Motor over Bluetooth
+numpy
+matplotlib      # plot_imu.py
+pygame-ce       # play.py (imported as `pygame`; has wheels for Python 3.14)
+opencv-python   # step 3: webcam + colour masks
+mediapipe       # step 3: pose (wrist/elbow); model in models/pose_landmarker_lite.task
+paho-mqtt       # score_publisher.py via mqttlib.py (round results to ME193/Rogers/Victor)
+cv2-enumerate-cameras   # camera_select.py: pick the webcam by name ('laptop' / 'usb')
