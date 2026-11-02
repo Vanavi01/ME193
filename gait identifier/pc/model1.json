@@ -1,0 +1,15 @@
+{
+  "axis": 2,
+  "axis_name": "ay_g",
+  "thresholds": [
+    0.375,
+    0.991,
+    3.016
+  ],
+  "labels": [
+    "stand",
+    "bike",
+    "walk",
+    "run"
+  ]
+}
