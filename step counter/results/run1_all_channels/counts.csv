@@ -1,0 +1,6 @@
+session,activity,truth,truth_from,pred,pred_sd,labeled,pedometer,err,pct_err
+S18,walk_normal,47.0,labels,1.72,2.87,47,49.0,-45.28,-96.35
+S19,walk_fast,51.5,hand count,35.6,2.73,52,54.0,-15.9,-30.87
+S21,walk,76.0,hand count,25.51,2.59,75,77.0,-50.49,-66.43
+S22,stop_go,79.0,hand count,37.65,11.42,75,78.0,-41.35,-52.35
+S23,stop_go,57.0,hand count,54.02,1.46,59,62.0,-2.98,-5.23

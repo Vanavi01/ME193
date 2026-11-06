@@ -1,0 +1,6 @@
+session,activity,true_steps,offset_s,walk_start_s,walk_end_s,stomp_times_s,notes
+S18,walk_normal,,,,,,hand count 48-49 incl stomps was loose; scored against the step labels instead
+S19,walk_fast,51.5,-2.4,,43.0,,hand count 57.5 incl 6 stomps -> 51.5 walking steps
+S21,walk,76,,,,,hand count 82 incl 6 stomps -> 76 walking steps
+S22,stop_go,79,,,74.5,50.9;52.3;53.8;60.1;62.0,hand count 90 incl 11 stomps -> 79 walking steps
+S23,stop_go,57,,,,,hand count 63 incl 6 stomps -> 57 walking steps

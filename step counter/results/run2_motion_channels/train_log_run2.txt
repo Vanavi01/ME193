@@ -1,0 +1,24 @@
+5 recordings, 5.4 min, 308 labeled steps
+channels: ankle 6, phone 18  (1000 iterations x 5 seeds per fold)
+55 training runs on 15 worker processes...
+done in 31.8 min
+
+Per recording ({LABELS[args.main]}, held out):
+session    activity  truth truth_from      pred  pred_sd   err  pct_err  labeled  pedometer
+    S18 walk_normal   47.0     labels 23.400000      7.9 -23.6    -50.1       47       49.0
+    S19   walk_fast   51.5 hand count 35.299999      3.8 -16.2    -31.4       52       54.0
+    S21        walk   76.0 hand count 70.900002      0.9  -5.1     -6.8       75       77.0
+    S22     stop_go   79.0 hand count 44.000000      6.0 -35.0    -44.3       75       78.0
+    S23     stop_go   57.0 hand count 39.900002      3.6 -17.1    -29.9       59       62.0
+
+Mean absolute % error, 95% bootstrap CI over recordings:
+                         method  mape  ci_lo  ci_hi  mean_signed_err  mean_seed_sd
+net: ankle+phone (all channels)  50.2   24.1   77.3            -31.2           4.2
+                net: ankle only  13.9    8.0   23.0             -2.5           2.2
+ net: phone only (all channels)  44.0   16.7   77.2            -25.0           3.7
+        net: ankle+phone motion  32.5   19.2   44.9            -19.4           4.5
+         net: phone motion only  29.8   17.1   40.9            -18.6           3.2
+                  peak detector   2.2    0.7    3.9             -0.5           NaN
+                phone pedometer   4.1    1.9    6.5              1.9           NaN
+Saved 5-model ensemble (31265 weights each) -> C:\Users\victo\lego_hand_control\gait identifier\pc\step_model.pt
+Results in C:\Users\victo\lego_hand_control\gait identifier\results

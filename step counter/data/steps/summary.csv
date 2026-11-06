@@ -1,0 +1,6 @@
+session,activity,ankle_file,walk_s,true_steps,labeled_steps,ankle_steps,phone_steps,diff,cadence_spm,phone_pedometer,phone_steps_from,sync
+S18,walk_normal,S18_walk.csv,31.4,42.5,47,23,24,4.5,89.7,49.0,phone gyro,"xcorr 0.32, drift +323 ppm"
+S19,walk_fast,S19_walk.csv,34.6,51.5,52,26,26,0.5,90.1,54.0,phone gyro,manual
+S21,walk,S21_walk.csv,65.1,76.0,75,38,37,-1.0,69.1,77.0,"phone gyro, midpoints for the last 0.8 s","xcorr 0.31, start only (end fit disagreed)"
+S22,stop_go,S22_walk.csv,65.7,79.0,75,36,39,-4.0,68.5,78.0,"phone gyro, midpoints for the last 1.5 s","xcorr 0.41, start only (end fit disagreed)"
+S23,stop_go,S23_walk.csv,57.0,57.0,59,30,29,2.0,62.1,62.0,phone gyro,"xcorr 0.40, start only (end fit disagreed)"

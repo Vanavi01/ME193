@@ -1,0 +1,8 @@
+method,mape,ci_lo,ci_hi,mean_signed_err,mean_seed_sd
+net: ankle+phone (all channels),50.24,24.07,77.27,-31.2,4.21
+net: ankle only,13.93,8.02,23.01,-2.51,2.21
+net: phone only (all channels),43.95,16.68,77.22,-24.98,3.67
+net: ankle+phone motion,32.49,19.18,44.92,-19.38,4.45
+net: phone motion only,29.82,17.06,40.88,-18.56,3.16
+peak detector,2.17,0.65,3.93,-0.5,
+phone pedometer,4.09,1.88,6.5,1.9,

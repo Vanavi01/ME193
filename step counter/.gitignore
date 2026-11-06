@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+# duplicate encodings made for Notion uploads; the main video is results/step_counter_explained.mp4
+results/video_formats/
+data/phone/*_before_trim/
