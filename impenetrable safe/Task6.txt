@@ -1,0 +1,176 @@
+TASK 6 - IMPENETRABLE SAFE: FUNDAMENTAL QUESTIONS
+=================================================
+
+
+1. DESCRIBE THE LOCK POLICY - HOW DOES IT MAKE DECISIONS?
+---------------------------------------------------------
+
+The lock policy (src/lock_policy.py) is a state machine. It runs once for every camera frame and
+gets three inputs: the network's answer for that frame (a digit 0-5 and its confidence), whether
+the button was pressed, and (later) whether the door is open. From those it decides the state, the
+servo position and what each LED does.
+
+States:
+  SLEEP     Locked, LEDs off. Ignores the camera completely and waits for the button.
+  LISTEN    Reading the code. Entered by pressing the button; all three LEDs light briefly.
+  UNLOCKED  Servo turned to open, green LED on. Stays open until the button is pressed again,
+            which locks it.
+  LOCKOUT   After 3 wrong codes: red LED on, camera ignored, for 30 seconds.
+  BREACH    Planned for the Hall-effect sensor: door opened while the servo is locked = forced
+            entry, red LED flashing + alarm. The logic exists and is tested; the sensor is not
+            installed yet, so this state cannot happen now.
+
+How a digit is accepted (in LISTEN):
+  - A frame only counts if the network is at least 90% confident (softmax probability >= 0.90).
+    Frames below that are treated as "no reading".
+  - The SAME digit must be read in 10 frames in a row. One odd frame (motion blur, a hand moving
+    between poses) resets the count, so a single wrong prediction can never enter a digit.
+  - After a digit is accepted, the user must show a fist (0) before the next digit. Without this,
+    holding up "3" would be entered as 3, 3, 3.
+  - Each accepted digit flashes the yellow LED.
+  - If there is no confident reading for 10 seconds, the safe gives up and goes back to SLEEP.
+
+How the code is checked:
+  - After 3 digits, the entry is compared with the stored code. The code is 3 different digits
+    from 1-5 and is stored only as a salted PBKDF2-SHA256 hash (100,000 iterations), so the code
+    itself is not saved anywhere on the PC or the board.
+  - Correct: green LED flashes, the servo turns to open (UNLOCKED), and the wrong-attempt counter
+    resets.
+  - Wrong: red LED flashes for 2 seconds and the user can try again. Wrong attempts are counted
+    across button presses (pressing the button again does not reset the count). The 3rd wrong
+    code in a row triggers the 30-second LOCKOUT.
+  - Pressing the button while UNLOCKED locks the safe again (servo turns back). With the Hall
+    sensor installed, it will also re-lock by itself 2 s after the door is opened and closed, and
+    the button will not lock while the door is open (so the bolt can't hit an open door).
+
+Safety rules around the policy:
+  - At start-up the servo does a full lock turn against its physical stop, so it starts from a
+    known position.
+  - If the vision program stops or loses its connection to the hardware server, the hardware
+    server locks the servo and turns the LEDs off on its own.
+
+
+2. POTENTIAL LIMITATIONS OF THE LOCK (at least 4)
+-------------------------------------------------
+
+1) Recognition is not equally good for everyone.
+   Per single picture, the network is right about 86% of the time on my own hand (tested on a
+   recording session it never trained on), but only 66-81% on a person it has never seen. It was
+   trained on 720 pictures from only 3 people. The most common mistake is reading 3 or 4 fingers
+   as 2 when the fingers are held close together. The 10-frames-at-90% rule turns most mistakes
+   into "no reading" rather than a wrong digit, but a stranger may need several tries.
+
+2) The code space is tiny, so it can be brute-forced.
+   3 different digits from 1-5 gives only 5 x 4 x 3 = 60 possible codes. With 3 tries per
+   30-second lockout, someone could try all 60 in roughly 20 lockout cycles: about 10 minutes of
+   waiting plus the time to show the codes, so roughly 15-20 minutes. A real lock would need
+   longer codes or lockouts that get longer each time.
+
+3) The code is shown openly (shoulder surfing).
+   Anyone watching, in the room or on the live web view, sees exactly which fingers are shown.
+   The web page on port 8080 has no password, so anyone on the same Wi-Fi can watch the camera
+   while the code is entered.
+
+4) The hardware server can be told to unlock directly over the network.
+   The App Lab app listens on port 5005 with no authentication, so the vision program can reach
+   it. Anyone on the same network who knows the protocol could send it an "unlock" command and
+   skip the neural network entirely. Fix: once everything runs on the board, only accept
+   connections from the board itself (127.0.0.1), or add a shared secret.
+
+5) It depends on the physical setup staying the same.
+   The model was trained with one camera height, white paper with a blue tape border, even
+   lighting and one hand placement (wrist on the bottom tape, fingers spread). A shadow across the
+   paper, the paper rotating by a few degrees, a blue sleeve, or a hand held at a different angle
+   all lower accuracy, and the camera has to be recalibrated after any bump.
+
+6) It can be fooled by anything shaped like a hand.
+   There is no check that the hand is real and alive: a printed photo of a hand, or a cardboard
+   cut-out showing the right number of fingers, would most likely be accepted.
+
+7) The servo does not know where it is.
+   The M5Stack 360 is a continuous-rotation servo with no position feedback. Locking and unlocking
+   are timed spins (500 ms each way) that rely on physical stops to land in the same place. If the
+   power is cut mid-move or a stop breaks, the board's idea of "locked" and the real latch can
+   disagree. The plastic latch and servo can also simply be forced.
+
+8) No forced-entry detection yet.
+   The breach alarm needs the Hall-effect door sensor, which isn't installed, so prying the door
+   open currently goes unnoticed.
+
+
+3. HOW DOES THE NEURAL NET WORK?
+--------------------------------
+
+This is explained step by step in the stop-motion movie (movie/impenetrable_safe_explainer.mp4
+with my voice-over, script in movie/SCRIPT.md). Short version:
+
+  - Input: the area inside the blue tape, padded to a square and shrunk to 64 x 64 colour pixels
+    = 64 x 64 x 3 = 12,288 numbers between -1 and 1.
+  - Layer 1: 8 convolution filters of 3 x 3 x 3 weights slide over the picture. At each position
+    a filter multiplies the 27 pixel values under it by its 27 weights, adds them up and adds a
+    bias. ReLU sets negative results to 0. The result is 8 feature maps; in the trained network
+    some respond to skin, some to the white paper and one to finger edges.
+  - Max-pooling (2 x 2) after each layer keeps the largest value in every 2 x 2 square: 4x fewer
+    numbers, the strongest signals survive, and small shifts of the hand matter less.
+  - Layer 2 (16 filters) and layer 3 (32 filters) work on the previous layer's maps and build up
+    bigger shapes, ending in 32 maps of 8 x 8 ("is there a finger here?").
+  - Every map from all three layers is squashed to 4 x 4 (adaptive max-pool) and joined into one
+    list of 896 numbers, so the last layer sees both fine detail and the overall shape.
+  - A fully connected layer gives 6 scores (fist, 1-5) as weighted sums of the 896 numbers, and
+    softmax turns them into probabilities that add up to 100%.
+  - In total the network has 11,414 learned weights (224 + 1,168 + 4,640 + 5,382) and does about
+    3.2 million multiply-adds per picture.
+  - Training (on the PC): 720 labelled pictures from 3 people, cross-entropy loss with
+    class-balanced weights, the Adam optimizer, batches of 32 pictures, 60 passes over the data.
+    During training every picture is randomly rotated (+/-15 degrees), shifted, zoomed and
+    brightened, so the network learns finger shapes instead of memorising exact photos.
+    Backpropagation computes how to change every weight to reduce the loss.
+
+
+4. HOW DID THE UnoQ SETUP COMPARE WITH THE COMPUTER?
+---------------------------------------------------
+
+The same code and the same trained model file run on both. preprocess.py, model.py, infer.py and
+lock_policy.py are shared, so the board prepares every picture exactly like the PC did during
+training.
+
+                          PC (Windows laptop)              Arduino UnoQ (Linux side)
+  Processor               x86, 8 threads                   4-core Arm (aarch64), 3.6 GB RAM
+  Python / PyTorch        3.14 / 2.14.1 (CPU)              3.13 / 2.15.0 (CPU)
+  Network speed           2.45 ms per picture              13.6 ms per picture (~5.5x slower)
+  Training                yes (under a second per pass)    no - inference only
+  Camera driver           DirectShow, camera index 0       V4L2, /dev/video2
+  Locked exposure value   -4 (DirectShow scale)            400 (V4L2, 100-microsecond units)
+  Display                 OpenCV window                    web page (MJPEG) on port 8080
+  Servo / LEDs / button   none - needs the board           directly, via the microcontroller
+
+What was the same or better on the UnoQ:
+  - The network is fast enough: 13.6 ms per picture is well under the ~33 ms between camera
+    frames, so the board can check every frame.
+  - The safe is self-contained. The camera, network, lock logic and hardware are all on the board,
+    and Wi-Fi is only used to look at the screen. When the PC drove the board over Wi-Fi, each
+    message took 26-116 ms on campus Wi-Fi, and I had to move the board communication to a
+    background thread so the camera didn't slow down. On the board it's a local connection.
+
+What was harder on the UnoQ:
+  - The camera behaves differently under Linux. The exposure uses a different scale, and the
+    webcam is /dev/video2 (video0 and video1 are the board's video encoder and decoder), so the
+    camera had to be calibrated again on the board.
+  - The board is really two computers. The Arduino sketch (servo pulses, LEDs, button) runs on the
+    microcontroller, and Python can only reach it through the Bridge inside an App Lab app. App
+    Lab runs the app's Python in a container, so I had to declare the port (5005) in app.yaml
+    before anything outside could talk to it.
+  - Missing pieces:
+    - The UnoQ's Arduino core has no Servo.h, so the sketch makes the servo pulses itself.
+    - Python on the board had no venv support (installing it needs admin rights), so the setup
+      script creates the environment without pip and installs pip separately.
+    - After a power cut, App Lab restarted a different app, so the startup app has to be set.
+  - Development is slower: no screen, everything over SSH, and PyTorch (~ several hundred MB) had
+    to be installed on the board.
+  - The PC has an RTX 3050 GPU, but the network is so small that it trains fast enough on the
+    CPU; the UnoQ has no GPU usable by PyTorch.
+
+Status at the time of writing: the model loads and runs on the UnoQ (timed above). The full
+program on the board (safe_server) is ready, but it still needs one last camera recalibration on
+the board (the paper was bumped and sits 5 degrees tilted) before the end-to-end frame rate can
+be measured.

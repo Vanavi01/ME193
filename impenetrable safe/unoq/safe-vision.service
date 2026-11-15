@@ -1,0 +1,15 @@
+[Unit]
+Description=Impenetrable Safe - camera + CNN + lock logic, web view on port 8080
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=arduino
+WorkingDirectory=/home/arduino/safe
+ExecStart=/home/arduino/safe/.venv/bin/python -m src.safe_server
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
